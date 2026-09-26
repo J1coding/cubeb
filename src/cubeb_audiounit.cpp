@@ -39,11 +39,20 @@
  *
  * The __has_include disarms this block automatically if Apple ever ships the HAL
  * header for iOS, so it cannot become a stale redefinition.
+ *
+ * Apple did, in part: the iOS 27.0 SDK ships <CoreAudio/AudioHardwareBase.h>, which
+ * declares AudioObjectID, the three property types, AudioObjectPropertyAddress and
+ * kAudioObjectUnknown. The disarm above then removed those declarations without
+ * anything including the header, so the file stopped compiling. It is included
+ * here now. AudioDeviceID, AudioStreamID and AudioObjectPropertyListenerProc live
+ * in <CoreAudio/AudioHardware.h>, which iOS still does not ship, so they stay
+ * declared by hand on every iOS SDK.
  */
-#if TARGET_OS_IPHONE && !__has_include(<CoreAudio/AudioHardwareBase.h>)
+#if TARGET_OS_IPHONE
+#if __has_include(<CoreAudio/AudioHardwareBase.h>)
+#include <CoreAudio/AudioHardwareBase.h>
+#else
 typedef UInt32 AudioObjectID;
-typedef AudioObjectID AudioDeviceID;
-typedef AudioObjectID AudioStreamID;
 typedef UInt32 AudioObjectPropertySelector;
 typedef UInt32 AudioObjectPropertyScope;
 typedef UInt32 AudioObjectPropertyElement;
@@ -52,10 +61,13 @@ typedef struct AudioObjectPropertyAddress {
   AudioObjectPropertyScope mScope;
   AudioObjectPropertyElement mElement;
 } AudioObjectPropertyAddress;
+enum { kAudioObjectUnknown = 0 };
+#endif
+typedef AudioObjectID AudioDeviceID;
+typedef AudioObjectID AudioStreamID;
 typedef OSStatus (*AudioObjectPropertyListenerProc)(
     AudioObjectID inObjectID, UInt32 inNumberAddresses,
     const AudioObjectPropertyAddress * inAddresses, void * inClientData);
-enum { kAudioObjectUnknown = 0 };
 #endif
 #if !TARGET_OS_IPHONE
 #include "cubeb_osx_run_loop.h"
